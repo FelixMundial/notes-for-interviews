@@ -7,6 +7,12 @@
 
 # Java基本概念与基本句法
 
+在操作系统一个进程中启动JVM，为所指定的程序提供Java运行时环境：
+ ``` bash
+  java <arguments> <program name> 
+ ```
+该程序是编译过后的字节码程序，即.class类文件。
+
 ## 1. 词法结构与数据类型
 
 # Java面向对象编程
