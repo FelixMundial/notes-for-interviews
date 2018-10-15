@@ -224,11 +224,11 @@ C++可变参数模板：
 
 ## 1. 类和对象的概念与构造
 
-* 类中没有显式定义构造方法时，javac合成的默认构造方法（```<linit>```？）不对实例字段执行任何其它初始化操作（实例字段首先在JVM为实例对象分配堆内存时被默认初始化）。（C++合成的默认构造函数不对内置类型成员变量执行默认初始化）
+* 类中没有显式定义构造方法时，javac合成的默认构造方法（```<linit>```？）不对实例字段执行任何其它初始化操作（实例字段首先在JVM为实例对象分配堆内存时，即类加载的**准备**阶段被默认初始化）。（C++合成的默认构造函数不对内置类型成员变量执行默认初始化）
 
 字段发生类加载（默认或默认+显式）初始化之后，初值被插入类的所有构造方法中（除非目标构造方法中使用```this()```显式调用其它构造方法），因此也可以基于字段（默认或显式）初值构建构造方法。
 
-javac在类加载的**准备**阶段运用合成的类初始化方法（```<clinit>```）为类字段进行初始化。也可使用**静态初始化块**和类字段初始化表达式显式地构建类初始化方法：
+javac在类加载最后的**初始化**阶段运用合成的类初始化方法（```<clinit>```）为类字段进行初始化。也可使用**静态初始化块**和类字段初始化表达式显式地构建类初始化方法：
 
 ```java
     public class TestTriangle {
@@ -295,7 +295,7 @@ javac在类加载的**准备**阶段运用合成的类初始化方法（```<clin
             return "B sees: " + a.someField; // compilation error!
         }
         public String examineB(B b) {
-            return "B sees: " + a.someField; // ok
+            return "B sees: " + b.someField; // ok
         }
     }
 ```
@@ -327,6 +327,85 @@ javac在类加载的**准备**阶段运用合成的类初始化方法（```<clin
 
 ## 2. 泛型
 
+* 泛型擦除对方法重载的影响
+
+* 数组允许协变，但泛型不允许，即```List<T>```不是```List<Object>```的子类型；但```List<T>```却是```List<?>```的子类型，因此：
+
+```java
+    List<?> objects = new ArrayList<String>();
+```
+
+完全合法，但```objects```的```get()```方法返回的是Object类型。
+
+* 受限通配符
+
+> **PECS（"Producer extends, consumer super"）原则：如果需要一个集合提供类型T的元素，使用```<? extends T>```，因此可以通过向上转型读取集合中的```T```类型对象，但不能向其中添加任何元素（setter不合法）；如果需要一个集合使用类型T的元素，则用```<? super T>```，因此可以向集合中添加```T```类型或其任何子类的对象，但不能读取任何元素（可以返回```Object```类对象，但基本等同于getter不合法）。**
+
+* 枚举类型
+
+枚举类型由java运行时创建，可以拥有字段和方法，可以实现接口，但不能被继承，必能被泛型化，不能在类型外部实例化，且只能有一个私有的构造方法；枚举常量可以带参数，称为“带参数的枚举”。
+
+```java
+    public enum RegularPolygon {
+        TRIANGLE(3), SQUARE(4), PENTAGON(5), HEXAGON(6);
+        
+        private Shape shape;
+        private RegularPolygon(int sides) {
+            // constructor
+            switch (sides) {
+                // ...
+            }
+        }
+    }
+```
+
+* 嵌套类型
+
+1. 静态成员类
+
+嵌套的接口、枚举和注解类型都隐式声明为静态成员类。
+
+2. 非静态成员类
+
+非静态成员类可使用外层类、超类、外层类的超类的（公有或私有）字段。
+
+3. 局部类
+
+局部类可使用外层类、超类、外层类的超类的（公有或私有）字段，及final局部字段；所用到的外界局部变量在局部类实例中都有一个私有副本（javac生成），因此这些局部变量必须被预先声明为```final```。
+
+> * 由于局部类实例有一份```final```字段的私有副本，局部类实例的词法作用域与解释器进出定义局部类的代码块可能没有任何关系，在局部类作用域以外，残留的局部类实例引用可能还能发挥作用，这是Java的闭包实现策略，保存作用域的状态。
+
+```java
+    public class Closure {
+        public static interface IntHolder {
+            public int getInt();
+        }
+
+        public static void main(String[] args) {
+            IntHolder[] holders = new IntHolder[10];
+            
+            for (int i = 0; i < 10; i++) {
+                final int fi = i;
+
+                class MyIntHolder implements IntHolder {
+                    @override
+                    public int getInt() {
+                        return fi;
+                    }
+                }
+
+                holders[i] = new MyIntHolder();
+            }
+
+            for (var myIntHolder : holders) {
+                System.out.println(myIntHolder.getInt());
+            }
+        }
+    }
+```
+
+4. 匿名类
+
 # Java的面向对象设计
 
 # Java实现内存管理和并发编程的方式
@@ -336,7 +415,6 @@ javac在类加载的**准备**阶段运用合成的类初始化方法（```<clin
 * ```synchronized```关键字
 
 > * ```synchronized```关键字与```wait()```及```notifyAll()```方法一同使用，以维护一个等待线程队列（如实现一个线程安全的泛型容器）：
-
 ```java
     public class WaitingQueue<E> {
         LinkedList<E> queue = new LinkedList<>();
@@ -357,4 +435,8 @@ javac在类加载的**准备**阶段运用合成的类初始化方法（```<clin
 
 * ```volatile```关键字
 
-* ```Reentrant Lock```
+# Java平台的工具
+
+## 1. Java IO
+
+
