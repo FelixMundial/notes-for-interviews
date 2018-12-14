@@ -34,6 +34,28 @@
 
 [《深入理解Java虚拟机：JVM高级特性与最佳实践》（第二版）]
 
+### 2. Java Web / Java EE
+
+----------
+
+## JavaScript
+
+[《JavaScript权威指南》]
+
+[《深入理解ES6》]
+
+[《深入浅出node.js》]
+
+[《高性能JavaScript》]
+
+----------
+
+## Python
+
+[《Python网络数据采集》]
+
+[《Flask Web开发 基于Python的Web应用开发实战》]
+
 ----------
 
 ## 数据结构与算法
